@@ -1,0 +1,1 @@
+model_columns = ['item_CreatedDate','transaction_PatientAge', 'transaction_PatientEnGender','item_ServiceId','item_Price','item_Status','item_Sequence','item_RequestQuantity','item_ResponseQuantity','transaction_DiagnosisIds','transaction_PhysicianIds','item_ResponseState']

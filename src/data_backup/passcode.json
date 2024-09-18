@@ -1,0 +1,13 @@
+{
+  "DB_NAMES": {
+      "BI": {
+      "Database": "DWH_Claims",
+      "PWD": "P@ssw0rd",
+      "Server": "AWS-BI-03",
+      "UID": "AI",
+      "driver": "{ODBC Driver 17 for SQL Server}"
+  }
+
+  }
+
+}
