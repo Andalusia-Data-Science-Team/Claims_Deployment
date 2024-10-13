@@ -6,6 +6,8 @@ from keras.layers import LSTM, Dense, Input
 from tensorflow.keras.preprocessing.text import Tokenizer
 from keras.losses import BinaryCrossentropy
 import pickle
+from nltk.stem import WordNetLemmatizer
+import re
 
 class LSTMEmbedding:
     def __init__(self):
@@ -13,6 +15,7 @@ class LSTMEmbedding:
         self.input_shape = None
         self.encoder = None
         self.tokenizer = None
+        self.embedding_size = 16
         self.filepath = 'data/utilities/data_encoder/'
 
     def _tokenize_data(self,concatenated_data):
@@ -37,21 +40,33 @@ class LSTMEmbedding:
         X_pad = pad_sequences(encoded_data, maxlen=self.max_seq_length, padding='post')
         return X_pad
 
+    def _text_normalization(self,s:str):
+            text = s.lower()
+            text = re.sub(r'[^a-z\s]', '', text)
+
+            lemmatizer = WordNetLemmatizer()
+            words = [lemmatizer.lemmatize(word) for word in text]
+
+            normalized_text = ' '.join(words)
+
+            return normalized_text
+
     def preprocess_data(self, X, needs_tokenization=True):
-        embedding_size = 16
         string_columns = X.select_dtypes(include=['object']).columns
         filtered_data = X[string_columns].fillna('').astype(str)
         concatenated_data = filtered_data.apply(lambda x: ' '.join(x), axis=1)
+        concatenated_data = concatenated_data.apply(self._text_normalization)
+
         if needs_tokenization:
-            return self._tokenize_data(concatenated_data)[:,:embedding_size] ## never exceeds it
+            return self._tokenize_data(concatenated_data)[:,:self.embedding_size]
         else:
             return concatenated_data
 
     def _build_model(self, input_shape):
         self.model = Sequential([
             Input(shape=input_shape),
-            LSTM(32),
-            Dense(32, activation='relu'),
+            LSTM(64),
+            Dense(16, activation='relu'),
             Dense(1, activation='sigmoid')   ])
 
     def train_model(self, X_train, y_train, epochs=10, batch_size=32):
@@ -101,6 +116,8 @@ class LSTMEmbedding:
             raise Exception("Model has not been trained yet.")
 
         X_batch_preprocessed = self.preprocess_data(pd.DataFrame(X_batch), needs_tokenization=False)
+        X_batch_preprocessed = X_batch_preprocessed.apply(self._text_normalization)
+
         X_batch_preprocessed = self._tokenize_batch(X_batch_preprocessed)
 
         return X_batch_preprocessed

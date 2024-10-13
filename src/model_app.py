@@ -9,15 +9,31 @@ def round_two(val):
     return round(val,2)
 
 class ModelApplication:
-    def __init__(self, X_train, y_train, X_test, y_test):
+    def __init__(self, X_train, y_train, X_test, y_test,enable_categorical=True,deployment_mode= False):
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
+        self.enable_categorical = enable_categorical
+        if deployment_mode:
+            self._cat_disable()
 
     def _train_xgboost_classifier(self):
         self.xgb_model = xgb.XGBClassifier()
-        self.xgb_model.fit(self.X_train, self.y_train)
+        if self.enable_categorical:
+            self.xgb_model.fit(self.X_train, self.y_train, eval_metric= 'aucpr',
+                               eval_set=[(self.X_test, self.y_test)], early_stopping_rounds=10)
+        else:
+            self._cat_disable()
+            self.xgb_model.fit(self.X_train, self.y_train, eval_metric= 'aucpr',
+                               eval_set=[(self.X_test, self.y_test)], early_stopping_rounds=10)
+
+    def _cat_disable(self):
+        cols_cats = ['DOCTOR_SPECIALTY_CODE', 'DOCTOR_CODE', 'DEPARTMENT_TYPE',
+                     'PURCHASER_CODE','CONTRACT_NO','TREATMENT_TYPE_INDICATOR','POLICY_CODE']
+        for col in cols_cats:
+            self.X_train[col] = self.X_train[col].astype(float)
+            self.X_test[col]  = self.X_test[col].astype(float)
 
     def _get_prediction_metrics(self):
         y_pred = self.xgb_model.predict(self.X_test)
@@ -47,8 +63,8 @@ class ModelApplication:
 
         return {  "XGBoost": xgb_dict}
 
-    def get_model(self,force_retrain=False):
-        path_model = 'data/utilities/xgboost/model.json'
+    def get_model(self,model_name='outcome',force_retrain=False): ## model_name : [outcome, medical]
+        path_model = f'data/utilities/xgboost/model_{model_name}.json'
 
         if force_retrain:
             self._train_xgboost_classifier()
@@ -56,6 +72,7 @@ class ModelApplication:
             print('Training is done')
             return
         if not os.path.exists(path_model) or os.stat(path_model).st_size == 0:
+            print('Model not found in path..')
             print('XGBoost Model is training..')
             self._train_xgboost_classifier()
             self.xgb_model.save_model(path_model)
@@ -71,7 +88,6 @@ class ModelApplication:
 
     def get_feature_importance(self):
         xgb_feats = self.xgb_model.feature_importances_
-
         return xgb_feats
 
 
@@ -83,9 +99,9 @@ class ModelApplicationDeployment:
         path_model_class = 'data/utilities/xgboost/model.json'
         self.claims_classifier.load_model(path_model_class)
         print('Model is loaded..')
+
     def predict(self):
         preds_claims =  self.claims_classifier.predict(self.X_batch)
-
         return preds_claims
 
     def interprete(self):

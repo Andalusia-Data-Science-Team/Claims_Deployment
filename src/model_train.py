@@ -26,11 +26,12 @@ def encode_label(labels:list):
     return out
 
 class ModelsSearchEngine:
-    def __init__(self, X_train, y_train, X_test, y_test):
+    def __init__(self, X_train, y_train, X_test, y_test,enable_categorical=True):
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
+        self.enable_categorical = enable_categorical
 
     def _train_sgd_classifier(self):
         self.sgd_model = SGDClassifier()
@@ -72,7 +73,16 @@ class ModelsSearchEngine:
 
         return dict_metrics
 
+    def _cat_disable(self):
+        cols_cats = ['DOCTOR_SPECIALTY_CODE', 'DOCTOR_CODE', 'DEPARTMENT_TYPE', 'PURCHASER_CODE','CONTRACT_NO','TREATMENT_TYPE_INDICATOR']
+        for col in cols_cats:
+            self.X_train[col] = self.X_train[col].astype(float)
+            self.X_test[col] = self.X_test[col].astype(float)
+
     def train_models(self):
+        if self.enable_categorical == False:
+            self._cat_disable()
+
         self._train_lightgbm()
         self._train_decision_tree()
         self._train_neural_network()
@@ -151,14 +161,23 @@ class ModelsSearchEngine:
 
 
 class XGBoostTuning:
-    def __init__(self, X_train, y_train, X_test, y_test):
+    def __init__(self, X_train, y_train, X_test, y_test,enable_categorical=True):
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
         self.results = []
+        self.enable_categorical = enable_categorical
+
+    def _cat_disable(self):
+        cols_cats = ['DOCTOR_SPECIALTY_CODE', 'DOCTOR_CODE', 'DEPARTMENT_TYPE', 'PURCHASER_CODE']
+        for col in cols_cats:
+            self.X_train[col] = self.X_train[col].astype(float)
+            self.X_test[col]  = self.X_test[col].astype(float)
 
     def train_and_evaluate(self, param_grid):
+        if self.enable_categorical == False:
+            self._cat_disable()
         param_combinations = list(itertools.product(*param_grid.values()))
         best_score = -1
         best_params = None

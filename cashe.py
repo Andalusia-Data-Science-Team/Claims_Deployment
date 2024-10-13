@@ -5,7 +5,7 @@ train_columns = []
 
 def drop_duplicated_claims(df):
     df = df.sort_values( by =['CREATION_DATE'])
-    cols = ['VISIT_ID','NET_WITH_VAT', 'SERVICE_DESCRIPTION', 'QTY', 'LINE_CLAIMED_AMOUNT_SAR', 'LINE_ITEM_DISCOUNT', 'NET_VAT_AMOUNT', 'PATIENT_VAT_AMOUNT', 'VAT_PERCENTAGE', 'TREATMENT_TYPE_INDICATOR', 'SERVICE_TYPE', 'DURATION', 'QTY_STOCKED_UOM', 'OASIS_IOS_DESCRIPTION', 'UNIT_PRICE_STOCKED_UOM', 'UNIT_PRICE_NET', 'DISCOUNT_PERCENTAGE', 'EMERGENCY_INDICATOR', 'PROVIDER_DEPARTMENT_CODE', 'PROVIDER_DEPARTMENT', 'DOCTOR_SPECIALTY_CODE', 'DOCTOR_CODE', 'PATIENT_AGE', 'UNIT_OF_AGE', 'PATIENT_NATIONALITY', 'PATIENT_MARITAL_STATUS', 'PATIENT_GENDER', 'CLAIM_TYPE', 'TOTAL_CLAIMED_AMOUNT_SAR', 'TOTAL_DISCOUNT', 'TOTAL_DEDUCTIBLE', 'TOTAL_PATIENT_VATAMOUNT', 'DEPARTMENT_TYPE', 'TREATMENT_TYPE', 'PURCHASER_CODE', 'NEW_BORN', 'ICD10']
+    cols = ['VISIT_NO','NET_WITH_VAT', 'SERVICE_DESCRIPTION', 'QTY', 'LINE_CLAIMED_AMOUNT_SAR', 'LINE_ITEM_DISCOUNT', 'NET_VAT_AMOUNT', 'PATIENT_VAT_AMOUNT', 'VAT_PERCENTAGE', 'TREATMENT_TYPE_INDICATOR', 'SERVICE_TYPE', 'DURATION', 'QTY_STOCKED_UOM', 'OASIS_IOS_DESCRIPTION', 'UNIT_PRICE_STOCKED_UOM', 'UNIT_PRICE_NET', 'DISCOUNT_PERCENTAGE', 'EMERGENCY_INDICATOR', 'PROVIDER_DEPARTMENT_CODE', 'PROVIDER_DEPARTMENT', 'DOCTOR_SPECIALTY_CODE', 'DOCTOR_CODE', 'PATIENT_AGE', 'UNIT_OF_AGE', 'PATIENT_NATIONALITY', 'PATIENT_MARITAL_STATUS', 'PATIENT_GENDER', 'CLAIM_TYPE', 'TOTAL_CLAIMED_AMOUNT_SAR', 'TOTAL_DISCOUNT', 'TOTAL_DEDUCTIBLE', 'TOTAL_PATIENT_VATAMOUNT', 'DEPARTMENT_TYPE', 'TREATMENT_TYPE', 'PURCHASER_CODE', 'NEW_BORN', 'ICD10']
     df.drop_duplicates(cols,keep='last',inplace=True)
     return df
 
@@ -71,12 +71,13 @@ def get_testing_inputs(df_test):
     y_test.loc[:, 'OUTCOME'] = encode_label(y_test['OUTCOME'].tolist())
     return X_test, y_test
 
-def drop_nomodel_columns(df):
+def drop_nomodel_columns(df,eliminate_repeated=True):
     ## list of columns not needed in the modeling.
     ## Stage 1: Unimportant columns
     list_handler = ['PERIOD', 'DATE', '_ID', '_NO', '_API', 'ATTACH', 'PATIENT_DOB', '_USER', 'TREATMENT_SUB_TYPE',
                     'ELIGIBILITY_RESPONSE_SYSTEM', 'DOCTOR_LICENSE', 'OUTCOME', '_QUANTITY', 'RES_STATUS', 'NOTES',
-                    '_LICENSE','APPROVED_QUNATITY','_Key']
+                    '_LICENSE','APPROVED_QUNATITY','_Key','SERVICE_DESCRIPTION','SERVICE_CATEGORY','STATUS','PUR_NAME',
+                    'POLICY_NAME','CONTRACT_NAME']
 
     df2 = df.copy()
     for substring in list_handler:
@@ -85,8 +86,13 @@ def drop_nomodel_columns(df):
         df2.drop(columns=columns_to_drop,inplace=True)
 
     ## Stage 2: Repeated columns
-    cols_drop = ['HIS_INSURANCE_CODE',  'TOTAL_NET_AMOUNT', 'TOTAL_NET_VAT_AMOUNT', 'TOTAL_CLAIMED_AMOUNT', 'LINE_CLAIMED_AMOUNT',  'NET_AMOUNT','SERVICE_CATEGORY', 'UNIT_PRICE','STATUS', 'CO_PAY']
-    for col in cols_drop:
-        df2.drop(columns=[col],inplace=True)
+    cols_drop = ['HIS_INSURANCE_CODE',  'TOTAL_NET_AMOUNT','PUR_NAME', 'POLICY_CODE','POLICY_NAME','CONTRACT_NAME',
+                 'TOTAL_NET_VAT_AMOUNT', 'TOTAL_CLAIMED_AMOUNT', 'LINE_CLAIMED_AMOUNT',  'NET_AMOUNT', 'UNIT_PRICE',
+                 'CO_PAY']
+    if eliminate_repeated:
+        for col in cols_drop:
+            df2.drop(columns=[col],inplace=True)
+    else:
+        df2['HIS_INSURANCE_CODE'] = df2['HIS_INSURANCE_CODE'].astype(int)
 
     return df2

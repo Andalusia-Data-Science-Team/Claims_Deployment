@@ -90,20 +90,6 @@ def self_drop_duplicates(df_visit, service_columns):
     return df_visit
 
 
-def merge_visit_service(df_service=None, df_visit=None):
-    merged_df = pd.merge(df_service, df_visit, left_on='VISIT_ID', right_on='VISIT_ID',
-                         how='left')  ## merging on VISIT_ID
-    return merged_df
-
-
-def merge_claim(df_visit, df_service, df_episode):
-    df_visit_unique = self_drop_duplicates(df_visit, df_service.columns)
-    df_claim = merge_visit_service(df_service, df_visit_unique)
-
-    df_episode['VISIT_NO'] = df_episode['Episode_Key'].apply(lambda x: x.split('_')[1])
-    df_claim = df_claim.merge(df_episode, how='left', on='VISIT_NO')
-    return df_claim
-
 
 class MergedDataPreprocessing:
     def __init__(self, df):
@@ -145,7 +131,7 @@ class MergedDataPreprocessing:
     def _eliminate_null_claims(self,df_sorted):
         return df_sorted[df_sorted['OUTCOME'].notnull()] ## assert 'APPROVED' or 'PARTIAL'
 
-    def train_test_split(self, id_column='VISIT_ID', test_size=0.2, random_state=None):
+    def train_test_split(self, id_column='VISIT_NO', test_size=0.2, random_state=None):
         df = self.df
         df = self._eliminate_null_claims(df) ## assert 'Accepted' and 'Rejected' cases
 
@@ -200,17 +186,21 @@ class MergedDataPreprocessing:
                 df[column] = df[column].apply(self._replace_strings_in_column)
 
         if categorical_columns:
-            for col in ['PURCHASER_CODE','CONTRACT_NO','DEPARTMENT_TYPE','PROVIDER_DEPARTMENT']:
-                if col in df.columns:
+            cols_cats = ['DOCTOR_SPECIALTY_CODE', 'DOCTOR_CODE', 'DEPARTMENT_TYPE', 'PURCHASER_CODE', 'CONTRACT_NO', 'TREATMENT_TYPE_INDICATOR']
+            for col in cols_cats:
                     df[col] = df[col].astype(str)
 
         self.df = df
 
         return self.df
 
-    def column_embedding(self, df1,service_columns = ['SERVICE_DESCRIPTION', 'SERVICE_TYPE','UNIT','UNIT_TYPE','TIMES','PER', 'OASIS_IOS_DESCRIPTION', 'PROVIDER_DEPARTMENT']):
-        textual_col = service_columns
+    def column_embedding(self, df1,drop_after_processing):
+
+        textual_col = ['OASIS_IOS_DESCRIPTION','OASIS_IOS_CODE', 'SERVICE_TYPE','UNIT',
+                       'UNIT_TYPE','TIMES','PER', 'PROVIDER_DEPARTMENT']
+
         df1['CombinedText'] = df1[textual_col].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+
         arr2 = self.lstm_embedding.embedding_vector(df1['CombinedText'].tolist(), reload_model=True)
         new_cols_names = ['CombinedText' + str(i + 1) for i in range(arr2.shape[1])]
         df2 = pd.DataFrame(arr2)
@@ -218,27 +208,30 @@ class MergedDataPreprocessing:
         for col in df2.columns:
             df1.loc[:, col] = df2[col].values
         to_drop = textual_col + ['CombinedText']
-        df1.drop(columns=to_drop, inplace=True)
 
-        textual_col = 'ICD10'
-        arr2 = self.lstm_embedding.embedding_vector(df1[textual_col].tolist(), reload_model=True)
+        textual_col = ['ICD10']
+        df1['ICDText'] = df1[textual_col].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        arr2 = self.lstm_embedding.embedding_vector(df1['ICDText'].tolist(), reload_model=True)
         new_cols_names = ['ICDText' + str(i + 1) for i in range(arr2.shape[1])]
         df2 = pd.DataFrame(arr2)
         df2.columns = new_cols_names
         for col in df2.columns:
             df1.loc[:, col] = df2[col].values
-        to_drop = [textual_col]
-        df1.drop(columns=to_drop, inplace=True)
+        to_drop = to_drop + textual_col + ['ICDText']
 
-        textual_col = 'Chief_Complaint'
-        arr2 = self.lstm_embedding.embedding_vector(df1[textual_col].tolist(), reload_model=True)
+        textual_col = ['Chief_Complaint']
+        df1['ComplaintText'] = df1[textual_col].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        arr2 = self.lstm_embedding.embedding_vector(df1['ComplaintText'].tolist(), reload_model=True)
         new_cols_names = ['ComplaintText' + str(i + 1) for i in range(arr2.shape[1])]
         df2 = pd.DataFrame(arr2)
         df2.columns = new_cols_names
         for col in df2.columns:
             df1.loc[:, col] = df2[col].values
-        to_drop = [textual_col]
-        df1.drop(columns=to_drop, inplace=True)
+        to_drop = to_drop + textual_col + ['ComplaintText']
+        if drop_after_processing:
+            df1.drop(columns=to_drop, inplace=True)
+        else:
+            df1.drop(columns=['CombinedText','ICDText','ComplaintText'], inplace=True)
 
         return df1
 

@@ -28,7 +28,7 @@
         "INVOICE_NUMBER",
         "INVOICE_DATE",
         "SERVICE_CODE",
-        "OASIS_IOS_CODE",
+
         "VAT_INDICATOR",
         "SERVICE_CATEGORY",
         "INVOICE_CREATED_BY",
@@ -87,6 +87,7 @@
         "QTY_STOCKED_UOM",
         "UNIT_PRICE",
         "OASIS_IOS_DESCRIPTION",
+        "OASIS_IOS_CODE",
         "SEQUENCE_NO",
         "UNIT_PRICE_STOCKED_UOM",
         "UNIT_PRICE_NET",
@@ -96,6 +97,9 @@
         "APPROVED_QUNATITY"
     ],
     "claim_visit_dropped": [
+        "VISIT_ID",
+        "CREATED_BY_USER",
+        "CREATION_DATE",
         "HOSPITAL_ID",
         "VISIT_TYPE",
         "RESERVATION_NO",
@@ -185,7 +189,7 @@
         "DOCTOR_SPECIALTY"
     ],
     "claim_visit_columns": [
-        "VISIT_ID",
+
         "REQUEST_DATE",
         "VISIT_NO",
         "VISIT_DATE",
@@ -221,8 +225,7 @@
         "TOTAL_NET_VAT_AMOUNT",
         "CLAIM_NO",
         "STAT_END_DATE",
-        "CREATED_BY_USER",
-        "CREATION_DATE",
+
         "AMEND_BY_USER",
         "AMEND_LAST_DATE",
         "PAYER_LICENSE",
@@ -256,10 +259,21 @@
     ],
     "episode-diagnose_columns":
     [
-        "Episode_Key",
+
+
         "ICD10",
         "Diagnosis_Key"
     ],
+    "chief-complaint_columns":
+    ["Chief_Complaint"],
+    "purchaser_contract_columns":
+    [
+      "PUR_NAME",
+      "POLICY_CODE",
+      "POLICY_NAME",
+    "CONTRACT_NAME"
+
+            ],
     "insurance_ahj_columns": [
     "API_TRANS_ID",
     "API_PROVIDER",
